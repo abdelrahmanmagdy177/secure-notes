@@ -177,7 +177,13 @@
             gap: 0.6rem;
             position: relative;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: background 0.2s ease;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .note-card:hover {
+            background: var(--surface-hover);
+            border-color: #2e354d;
         }
 
         .note-header {
@@ -226,6 +232,10 @@
             color: #c5cbd8;
             line-height: 1.5;
             white-space: pre-wrap;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         /* Secret Box Component */
@@ -259,7 +269,7 @@
             border: none;
             background: #171a26;
             color: var(--muted);
-            padding: 0.4rem;
+            padding: 0.45rem;
             border-radius: 0.5rem;
             cursor: pointer;
             display: flex;
@@ -468,6 +478,19 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        .view-content-full {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #d1d5db;
+            white-space: pre-wrap;
+            background: #0d0f18;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            max-height: 15rem;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -508,7 +531,7 @@
         <section id="tab-public" class="tab-content active">
             <div class="notes-list" id="public-notes-list">
                 @forelse ($publicNotes as $note)
-                    <article class="note-card" data-id="{{ $note['id'] }}" data-private="0">
+                    <article class="note-card" data-id="{{ $note['id'] }}" data-private="0" onclick="openViewModal('{{ $note['id'] }}')">
                         <div class="note-header">
                             <div class="note-title-wrap">
                                 <h3 class="note-title">{{ $note['title'] }}</h3>
@@ -518,13 +541,13 @@
                                     <span class="badge-tag">NOTE</span>
                                 @endif
                             </div>
-                            <button class="delete-btn" onclick="deleteNote('{{ $note['id'] }}', false)">
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteNote('{{ $note['id'] }}', false)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
 
                         @if(!empty($note['type']) && $note['type'] === 'secret')
-                            <div class="secret-box">
+                            <div class="secret-box" onclick="event.stopPropagation();">
                                 <span class="secret-val" id="secret-val-{{ $note['id'] }}" data-real="{{ $note['secret_value'] }}">••••••••••••••••</span>
                                 <div class="secret-actions">
                                     <button class="action-icon-btn" onclick="toggleSecretVisibility('{{ $note['id'] }}')">
@@ -579,7 +602,7 @@
 
                 <div class="notes-list" id="private-notes-list">
                     @forelse ($privateNotes as $note)
-                        <article class="note-card" data-id="{{ $note['id'] }}" data-private="1">
+                        <article class="note-card" data-id="{{ $note['id'] }}" data-private="1" onclick="openViewModal('{{ $note['id'] }}')">
                             <div class="note-header">
                                 <div class="note-title-wrap">
                                     <h3 class="note-title">{{ $note['title'] }}</h3>
@@ -589,13 +612,13 @@
                                         <span class="badge-tag">NOTE</span>
                                     @endif
                                 </div>
-                                <button class="delete-btn" onclick="deleteNote('{{ $note['id'] }}', true)">
+                                <button class="delete-btn" onclick="event.stopPropagation(); deleteNote('{{ $note['id'] }}', true)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                             </div>
 
                             @if(!empty($note['type']) && $note['type'] === 'secret')
-                                <div class="secret-box">
+                                <div class="secret-box" onclick="event.stopPropagation();">
                                     <span class="secret-val" id="secret-val-{{ $note['id'] }}" data-real="{{ $note['secret_value'] }}">••••••••••••••••</span>
                                     <div class="secret-actions">
                                         <button class="action-icon-btn" onclick="toggleSecretVisibility('{{ $note['id'] }}')">
@@ -675,6 +698,46 @@
         </form>
     </div>
 
+    <!-- View / Inspect Item Modal -->
+    <div id="view-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span id="view-badge" class="badge-tag">NOTE</span>
+                    <h3 id="view-title" class="modal-title" style="margin-top: 0.4rem; font-size: 1.2rem;">Item Title</h3>
+                </div>
+                <button class="delete-btn" onclick="closeViewModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div id="view-secret-wrap" style="display: none;">
+                <label style="font-size: 0.78rem; color: var(--muted); text-transform: uppercase;">Secret Key Value</label>
+                <div class="secret-box" style="margin-top: 0.4rem;">
+                    <span class="secret-val" id="view-secret-val">••••••••••••••••</span>
+                    <div class="secret-actions">
+                        <button class="action-icon-btn" onclick="toggleViewSecretVisibility()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="action-icon-btn" onclick="copyViewSecret()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-content-wrap">
+                <label style="font-size: 0.78rem; color: var(--muted); text-transform: uppercase;">Details & Notes</label>
+                <div id="view-content-body" class="view-content-full" style="margin-top: 0.4rem;">No description provided.</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                <span id="view-date" class="note-date">Aug 27, 2026</span>
+                <button type="button" class="btn btn-secondary" onclick="closeViewModal()" style="flex: initial; padding: 0.6rem 1.4rem;">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         let activeTab = 'public';
@@ -706,6 +769,17 @@
         const groupSecretFields = document.getElementById('group-secret-fields');
         const labelTitle = document.getElementById('label-title');
         const toast = document.getElementById('toast');
+
+        // View Modal Elements
+        const viewModal = document.getElementById('view-modal');
+        const viewBadge = document.getElementById('view-badge');
+        const viewTitle = document.getElementById('view-title');
+        const viewSecretWrap = document.getElementById('view-secret-wrap');
+        const viewSecretVal = document.getElementById('view-secret-val');
+        const viewContentWrap = document.getElementById('view-content-wrap');
+        const viewContentBody = document.getElementById('view-content-body');
+        const viewDate = document.getElementById('view-date');
+        let currentViewRealSecret = '';
 
         // Tab Switching
         tabPublicBtn.addEventListener('click', () => switchTab('public'));
@@ -839,6 +913,61 @@
             }
         });
 
+        // View Item Details Modal
+        function openViewModal(id) {
+            const card = document.querySelector(`.note-card[data-id="${id}"]`);
+            if (!card) return;
+
+            const title = card.querySelector('.note-title').textContent;
+            const badge = card.querySelector('.badge-tag').textContent;
+            const date = card.querySelector('.note-date').textContent;
+            const bodyEl = card.querySelector('.note-body');
+            const content = bodyEl ? bodyEl.textContent : '';
+
+            const secretEl = card.querySelector(`#secret-val-${id}`);
+            const isSecret = secretEl !== null;
+
+            viewTitle.textContent = title;
+            viewBadge.textContent = badge;
+            viewBadge.className = isSecret ? 'badge-tag secret-tag' : 'badge-tag';
+            viewDate.textContent = date;
+
+            if (isSecret) {
+                currentViewRealSecret = secretEl.dataset.real || '';
+                viewSecretVal.textContent = '••••••••••••••••';
+                viewSecretWrap.style.display = 'block';
+            } else {
+                viewSecretWrap.style.display = 'none';
+            }
+
+            if (content.trim()) {
+                viewContentBody.textContent = content;
+                viewContentWrap.style.display = 'block';
+            } else {
+                viewContentWrap.style.display = isSecret ? 'none' : 'block';
+                viewContentBody.textContent = 'No description provided.';
+            }
+
+            viewModal.classList.add('active');
+        }
+
+        function closeViewModal() { viewModal.classList.remove('active'); }
+
+        function toggleViewSecretVisibility() {
+            const isMasked = viewSecretVal.textContent === '••••••••••••••••';
+            viewSecretVal.textContent = isMasked ? currentViewRealSecret : '••••••••••••••••';
+        }
+
+        async function copyViewSecret() {
+            if (!currentViewRealSecret) return;
+            try {
+                await navigator.clipboard.writeText(currentViewRealSecret);
+                showToast(`Copied Secret to Clipboard!`);
+            } catch (err) {
+                alert('Failed to copy to clipboard');
+            }
+        }
+
         function toggleSecretVisibility(id) {
             const el = document.getElementById(`secret-val-${id}`);
             if (!el) return;
@@ -869,6 +998,7 @@
             card.className = 'note-card';
             card.dataset.id = note.id;
             card.dataset.private = note.is_private ? '1' : '0';
+            card.onclick = () => openViewModal(note.id);
 
             const isSecret = note.type === 'secret';
             const tagText = isSecret ? (note.category || 'SECRET') : 'NOTE';
@@ -877,7 +1007,7 @@
             let secretHtml = '';
             if (isSecret) {
                 secretHtml = `
-                    <div class="secret-box">
+                    <div class="secret-box" onclick="event.stopPropagation();">
                         <span class="secret-val" id="secret-val-${note.id}" data-real="${escapeHtml(note.secret_value || '')}">••••••••••••••••</span>
                         <div class="secret-actions">
                             <button class="action-icon-btn" onclick="toggleSecretVisibility('${note.id}')">
@@ -899,7 +1029,7 @@
                         <h3 class="note-title">${escapeHtml(note.title)}</h3>
                         <span class="${tagClass}">${escapeHtml(tagText)}</span>
                     </div>
-                    <button class="delete-btn" onclick="deleteNote('${note.id}', ${note.is_private})">
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteNote('${note.id}', ${note.is_private})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                 </div>
