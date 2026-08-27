@@ -83,30 +83,38 @@ class NoteController extends Controller
     }
 
     /**
-     * Create a new public or private note.
+     * Create a new public or private note or secret key.
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
+            'content' => 'nullable|string',
             'is_private' => 'required|boolean',
+            'type' => 'nullable|string|in:note,secret',
+            'category' => 'nullable|string|max:50',
+            'secret_value' => 'nullable|string',
         ]);
 
         $isPrivate = (bool) $validated['is_private'];
 
-        // Guard private notes with biometric session verification
+        // Guard private items with biometric session verification
         if ($isPrivate && ! $request->session()->get('biometric_auth', false)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fingerprint authentication required to create private notes.',
+                'message' => 'Fingerprint authentication required to create private secrets/notes.',
             ], 403);
         }
+
+        $type = $validated['type'] ?? 'note';
 
         $note = [
             'id' => (string) Str::uuid(),
             'title' => $validated['title'],
-            'content' => $validated['content'],
+            'content' => $validated['content'] ?? '',
+            'type' => $type,
+            'category' => $validated['category'] ?? ($type === 'secret' ? 'API' : 'General'),
+            'secret_value' => $type === 'secret' ? ($validated['secret_value'] ?? '') : null,
             'is_private' => $isPrivate,
             'created_at' => now()->format('M j, Y • g:i A'),
         ];

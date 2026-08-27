@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0b0d14">
-    <title>Secure Notes</title>
+    <title>Secure Notes & Secrets Vault</title>
     <style>
         :root {
             --bg: #0b0d14;
@@ -18,6 +18,8 @@
             --accent-glow: rgba(59, 130, 246, 0.35);
             --danger: #ef4444;
             --success: #10b981;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -92,10 +94,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .tab-btn.active.private-tab {
-            color: var(--accent);
-        }
-
+        .tab-btn.active.private-tab { color: var(--accent); }
         .tab-btn svg { width: 1.1rem; height: 1.1rem; }
 
         /* Main Container */
@@ -165,7 +164,7 @@
             line-height: 1.4;
         }
 
-        /* Note Cards */
+        /* Note Cards & Secret Cards */
         .notes-list { display: flex; flex-direction: column; gap: 0.85rem; }
 
         .note-card {
@@ -175,7 +174,7 @@
             padding: 1.1rem 1.2rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.6rem;
             position: relative;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: background 0.2s ease;
@@ -188,17 +187,38 @@
             gap: 0.5rem;
         }
 
+        .note-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .note-title {
             margin: 0;
-            font-size: 1.05rem;
+            font-size: 1.02rem;
             font-weight: 600;
             color: var(--fg);
         }
 
-        .note-date {
-            font-size: 0.72rem;
-            color: var(--muted);
+        .badge-tag {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
+
+        .badge-tag.secret-tag {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--purple);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .note-date { font-size: 0.72rem; color: var(--muted); }
 
         .note-body {
             margin: 0;
@@ -207,6 +227,49 @@
             line-height: 1.5;
             white-space: pre-wrap;
         }
+
+        /* Secret Box Component */
+        .secret-box {
+            background: #0b0d14;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.88rem;
+        }
+
+        .secret-val {
+            color: #34d399;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .secret-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .action-icon-btn {
+            appearance: none;
+            border: none;
+            background: #171a26;
+            color: var(--muted);
+            padding: 0.4rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .action-icon-btn:active { transform: scale(0.92); color: var(--fg); background: #252a3d; }
+        .action-icon-btn svg { width: 1rem; height: 1rem; }
 
         .delete-btn {
             appearance: none;
@@ -251,8 +314,8 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(6px);
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
             z-index: 30;
             display: none;
             align-items: flex-end;
@@ -273,6 +336,8 @@
             gap: 1rem;
             box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
             animation: slideUp 0.25s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @keyframes slideUp {
@@ -280,10 +345,37 @@
             to { transform: translateY(0); }
         }
 
-        .modal-title {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 700;
+        .modal-title { margin: 0; font-size: 1.1rem; font-weight: 700; }
+
+        /* Type Selector Pills */
+        .type-selector {
+            display: flex;
+            gap: 0.5rem;
+            background: #0d0f18;
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .type-pill {
+            flex: 1;
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.55rem;
+            border-radius: 0.55rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .type-pill.active {
+            background: var(--surface-hover);
+            color: var(--fg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
         .input-group {
@@ -312,20 +404,10 @@
             outline: none;
         }
 
-        .input-control:focus {
-            border-color: var(--accent);
-        }
+        .input-control:focus { border-color: var(--accent); }
+        textarea.input-control { min-height: 5rem; resize: vertical; }
 
-        textarea.input-control {
-            min-height: 6rem;
-            resize: vertical;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 0.5rem;
-        }
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 
         .btn {
             flex: 1;
@@ -337,15 +419,8 @@
             cursor: pointer;
         }
 
-        .btn-secondary {
-            background: #1c2030;
-            color: var(--muted);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: #fff;
-        }
+        .btn-secondary { background: #1c2030; color: var(--muted); }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
 
         .unlocked-banner {
             background: rgba(16, 185, 129, 0.12);
@@ -369,19 +444,42 @@
             font-size: 0.75rem;
             cursor: pointer;
         }
+
+        /* Toast notification */
+        .toast-popup {
+            position: fixed;
+            top: 4rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #10b981;
+            color: #000;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+        }
+
+        .toast-popup.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
 <body>
+    <div id="toast" class="toast-popup">Copied to Clipboard!</div>
+
     <header>
         <div class="brand">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
-            <span>Secure Notes</span>
+            <span>Secure Notes & Secrets</span>
         </div>
     </header>
 
@@ -412,16 +510,40 @@
                 @forelse ($publicNotes as $note)
                     <article class="note-card" data-id="{{ $note['id'] }}" data-private="0">
                         <div class="note-header">
-                            <h3 class="note-title">{{ $note['title'] }}</h3>
+                            <div class="note-title-wrap">
+                                <h3 class="note-title">{{ $note['title'] }}</h3>
+                                @if(!empty($note['type']) && $note['type'] === 'secret')
+                                    <span class="badge-tag secret-tag">{{ $note['category'] ?? 'SECRET' }}</span>
+                                @else
+                                    <span class="badge-tag">NOTE</span>
+                                @endif
+                            </div>
                             <button class="delete-btn" onclick="deleteNote('{{ $note['id'] }}', false)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
-                        <p class="note-body">{{ $note['content'] }}</p>
+
+                        @if(!empty($note['type']) && $note['type'] === 'secret')
+                            <div class="secret-box">
+                                <span class="secret-val" id="secret-val-{{ $note['id'] }}" data-real="{{ $note['secret_value'] }}">••••••••••••••••</span>
+                                <div class="secret-actions">
+                                    <button class="action-icon-btn" onclick="toggleSecretVisibility('{{ $note['id'] }}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </button>
+                                    <button class="action-icon-btn" onclick="copySecret('{{ $note['id'] }}', '{{ $note['title'] }}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if(!empty($note['content']))
+                            <p class="note-body">{{ $note['content'] }}</p>
+                        @endif
                         <span class="note-date">{{ $note['created_at'] }}</span>
                     </article>
                 @empty
-                    <p style="color: var(--muted); text-align: center; margin-top: 2rem;">No public notes yet. Tap + to create one!</p>
+                    <p style="color: var(--muted); text-align: center; margin-top: 2rem;">No public items yet. Tap + to add one!</p>
                 @endforelse
             </div>
         </section>
@@ -437,7 +559,7 @@
                 </div>
                 <div>
                     <h2 style="margin: 0 0 0.3rem; font-size: 1.25rem;">Private Vault Locked</h2>
-                    <p class="lock-status">Scan your fingerprint to unlock and view your encrypted private notes.</p>
+                    <p class="lock-status">Scan your fingerprint to unlock your encrypted API Keys, Passwords & Private Notes.</p>
                 </div>
                 <button id="scan-fingerprint-btn" class="unlock-btn" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:1.4rem; height:1.4rem;">
@@ -451,7 +573,7 @@
 
             <div id="private-unlocked-view" style="{{ $authenticated ? '' : 'display: none;' }}">
                 <div class="unlocked-banner" style="margin-bottom: 1rem;">
-                    <span>✓ Private Vault Unlocked</span>
+                    <span>✓ Vault Unlocked</span>
                     <button class="lock-again-btn" onclick="lockVault()">Lock Vault</button>
                 </div>
 
@@ -459,16 +581,40 @@
                     @forelse ($privateNotes as $note)
                         <article class="note-card" data-id="{{ $note['id'] }}" data-private="1">
                             <div class="note-header">
-                                <h3 class="note-title">{{ $note['title'] }}</h3>
+                                <div class="note-title-wrap">
+                                    <h3 class="note-title">{{ $note['title'] }}</h3>
+                                    @if(!empty($note['type']) && $note['type'] === 'secret')
+                                        <span class="badge-tag secret-tag">{{ $note['category'] ?? 'SECRET' }}</span>
+                                    @else
+                                        <span class="badge-tag">NOTE</span>
+                                    @endif
+                                </div>
                                 <button class="delete-btn" onclick="deleteNote('{{ $note['id'] }}', true)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                             </div>
-                            <p class="note-body">{{ $note['content'] }}</p>
+
+                            @if(!empty($note['type']) && $note['type'] === 'secret')
+                                <div class="secret-box">
+                                    <span class="secret-val" id="secret-val-{{ $note['id'] }}" data-real="{{ $note['secret_value'] }}">••••••••••••••••</span>
+                                    <div class="secret-actions">
+                                        <button class="action-icon-btn" onclick="toggleSecretVisibility('{{ $note['id'] }}')">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        </button>
+                                        <button class="action-icon-btn" onclick="copySecret('{{ $note['id'] }}', '{{ $note['title'] }}')">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if(!empty($note['content']))
+                                <p class="note-body">{{ $note['content'] }}</p>
+                            @endif
                             <span class="note-date">{{ $note['created_at'] }}</span>
                         </article>
                     @empty
-                        <p style="color: var(--muted); text-align: center; margin-top: 2rem;">Vault is empty. Tap + to add a private note!</p>
+                        <p style="color: var(--muted); text-align: center; margin-top: 2rem;">Vault is empty. Tap + to add a secret key or note!</p>
                     @endforelse
                 </div>
             </div>
@@ -476,33 +622,55 @@
     </main>
 
     <!-- Floating Add Button -->
-    <button id="add-note-fab" class="fab" type="button" aria-label="Add Note">
+    <button id="add-note-fab" class="fab" type="button" aria-label="Add Item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
     </button>
 
-    <!-- Create Note Modal -->
+    <!-- Create Item Modal -->
     <div id="note-modal" class="modal-overlay">
         <form id="note-form" class="modal-card">
-            <h3 class="modal-title" id="modal-heading">New Public Note</h3>
+            <h3 class="modal-title" id="modal-heading">Add New Item</h3>
 
-            <div class="input-group">
-                <label for="note-title-input">Title</label>
-                <input id="note-title-input" class="input-control" type="text" placeholder="Enter note title..." required>
+            <!-- Item Type Selector Pill -->
+            <div class="type-selector">
+                <button type="button" id="pill-secret-btn" class="type-pill active" onclick="selectFormType('secret')">🔑 Secret / API Key</button>
+                <button type="button" id="pill-note-btn" class="type-pill" onclick="selectFormType('note')">📝 Text Note</button>
             </div>
 
-            <div class="input-group">
-                <label for="note-content-input">Content</label>
-                <textarea id="note-content-input" class="input-control" placeholder="Write your note here..." required></textarea>
-            </div>
-
+            <input type="hidden" id="entry-type-input" value="secret">
             <input type="hidden" id="note-private-flag" value="0">
+
+            <div class="input-group">
+                <label for="note-title-input" id="label-title">Key Name / Identifier</label>
+                <input id="note-title-input" class="input-control" type="text" placeholder="e.g. STRIPE_SECRET_KEY" required>
+            </div>
+
+            <!-- Secret Key Inputs -->
+            <div id="group-secret-fields" class="input-group">
+                <label for="secret-value-input">Secret Value / Password</label>
+                <input id="secret-value-input" class="input-control" type="password" placeholder="Enter password or secret key...">
+
+                <label for="category-select" style="margin-top: 0.5rem;">Category Tag</label>
+                <select id="category-select" class="input-control">
+                    <option value="API KEY">🔑 API Key</option>
+                    <option value="DATABASE">🗄️ Database Password</option>
+                    <option value="SSH KEY">🔒 SSH Key</option>
+                    <option value="OAUTH">🛡️ OAuth Token</option>
+                    <option value="ENV VAR">⚙️ Environment Variable</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="note-content-input">Description / Notes (Optional)</label>
+                <textarea id="note-content-input" class="input-control" placeholder="Optional details or instructions..."></textarea>
+            </div>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Note</button>
+                <button type="submit" class="btn btn-primary">Save Item</button>
             </div>
         </form>
     </div>
@@ -525,9 +693,19 @@
         const noteModal = document.getElementById('note-modal');
         const noteForm = document.getElementById('note-form');
         const modalHeading = document.getElementById('modal-heading');
-        const noteTitleInput = document.getElementById('note-title-input');
-        const noteContentInput = document.getElementById('note-content-input');
+        const entryTypeInput = document.getElementById('entry-type-input');
         const notePrivateFlag = document.getElementById('note-private-flag');
+
+        const noteTitleInput = document.getElementById('note-title-input');
+        const secretValueInput = document.getElementById('secret-value-input');
+        const categorySelect = document.getElementById('category-select');
+        const noteContentInput = document.getElementById('note-content-input');
+
+        const pillSecretBtn = document.getElementById('pill-secret-btn');
+        const pillNoteBtn = document.getElementById('pill-note-btn');
+        const groupSecretFields = document.getElementById('group-secret-fields');
+        const labelTitle = document.getElementById('label-title');
+        const toast = document.getElementById('toast');
 
         // Tab Switching
         tabPublicBtn.addEventListener('click', () => switchTab('public'));
@@ -548,6 +726,23 @@
             }
         }
 
+        function selectFormType(type) {
+            entryTypeInput.value = type;
+            if (type === 'secret') {
+                pillSecretBtn.classList.add('active');
+                pillNoteBtn.classList.remove('active');
+                groupSecretFields.style.display = 'flex';
+                labelTitle.textContent = 'Key Name / Identifier';
+                noteTitleInput.placeholder = 'e.g. STRIPE_SECRET_KEY';
+            } else {
+                pillNoteBtn.classList.add('active');
+                pillSecretBtn.classList.remove('active');
+                groupSecretFields.style.display = 'none';
+                labelTitle.textContent = 'Note Title';
+                noteTitleInput.placeholder = 'e.g. Meeting Standup Notes';
+            }
+        }
+
         // Fingerprint Authentication Trigger
         scanFingerprintBtn.addEventListener('click', async () => {
             scanFingerprintBtn.disabled = true;
@@ -556,10 +751,7 @@
             try {
                 const response = await fetch(@json(route('biometrics.authenticate')), {
                     method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrf,
-                        'Accept': 'application/json',
-                    },
+                    headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
                 });
 
                 const result = await response.json();
@@ -599,20 +791,21 @@
             }
 
             const isPrivate = activeTab === 'private';
-            modalHeading.textContent = isPrivate ? 'New Private Note 🔒' : 'New Public Note 🌐';
+            modalHeading.textContent = isPrivate ? 'Add Secret / Note 🔒' : 'Add Public Secret / Note 🌐';
             notePrivateFlag.value = isPrivate ? '1' : '0';
             noteTitleInput.value = '';
+            secretValueInput.value = '';
             noteContentInput.value = '';
+            selectFormType('secret');
             noteModal.classList.add('active');
         });
 
-        function closeModal() {
-            noteModal.classList.remove('active');
-        }
+        function closeModal() { noteModal.classList.remove('active'); }
 
         noteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const isPrivate = notePrivateFlag.value === '1';
+            const type = entryTypeInput.value;
 
             try {
                 const response = await fetch(@json(route('notes.store')), {
@@ -625,6 +818,9 @@
                     body: JSON.stringify({
                         title: noteTitleInput.value,
                         content: noteContentInput.value,
+                        type: type,
+                        category: categorySelect.value,
+                        secret_value: secretValueInput.value,
                         is_private: isPrivate,
                     }),
                 });
@@ -634,36 +830,88 @@
                     closeModal();
                     const containerId = isPrivate ? 'private-notes-list' : 'public-notes-list';
                     appendNoteToDom(containerId, result.note);
+                    showToast('✓ Item Saved Successfully');
                 } else {
-                    alert(result.message || 'Failed to save note.');
+                    alert(result.message || 'Failed to save item.');
                 }
             } catch (err) {
-                alert('Error saving note: ' + err.message);
+                alert('Error saving item: ' + err.message);
             }
         });
 
-        // Helper functions
+        function toggleSecretVisibility(id) {
+            const el = document.getElementById(`secret-val-${id}`);
+            if (!el) return;
+            const isMasked = el.textContent === '••••••••••••••••';
+            el.textContent = isMasked ? el.dataset.real : '••••••••••••••••';
+        }
+
+        async function copySecret(id, title) {
+            const el = document.getElementById(`secret-val-${id}`);
+            if (!el || !el.dataset.real) return;
+            try {
+                await navigator.clipboard.writeText(el.dataset.real);
+                showToast(`Copied "${title}" to Clipboard!`);
+            } catch (err) {
+                alert('Failed to copy to clipboard');
+            }
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 2500);
+        }
+
         function appendNoteToDom(containerId, note) {
             const list = document.getElementById(containerId);
             const card = document.createElement('article');
             card.className = 'note-card';
             card.dataset.id = note.id;
             card.dataset.private = note.is_private ? '1' : '0';
+
+            const isSecret = note.type === 'secret';
+            const tagText = isSecret ? (note.category || 'SECRET') : 'NOTE';
+            const tagClass = isSecret ? 'badge-tag secret-tag' : 'badge-tag';
+
+            let secretHtml = '';
+            if (isSecret) {
+                secretHtml = `
+                    <div class="secret-box">
+                        <span class="secret-val" id="secret-val-${note.id}" data-real="${escapeHtml(note.secret_value || '')}">••••••••••••••••</span>
+                        <div class="secret-actions">
+                            <button class="action-icon-btn" onclick="toggleSecretVisibility('${note.id}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                            <button class="action-icon-btn" onclick="copySecret('${note.id}', '${escapeHtml(note.title)}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const bodyHtml = note.content ? `<p class="note-body">${escapeHtml(note.content)}</p>` : '';
+
             card.innerHTML = `
                 <div class="note-header">
-                    <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                    <div class="note-title-wrap">
+                        <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                        <span class="${tagClass}">${escapeHtml(tagText)}</span>
+                    </div>
                     <button class="delete-btn" onclick="deleteNote('${note.id}', ${note.is_private})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                 </div>
-                <p class="note-body">${escapeHtml(note.content)}</p>
+                ${secretHtml}
+                ${bodyHtml}
                 <span class="note-date">${escapeHtml(note.created_at)}</span>
             `;
             list.prepend(card);
         }
 
         async function deleteNote(id, isPrivate) {
-            if (!confirm('Are you sure you want to delete this note?')) return;
+            if (!confirm('Are you sure you want to delete this item?')) return;
             try {
                 const response = await fetch(`/notes/${id}?is_private=${isPrivate ? 1 : 0}`, {
                     method: 'DELETE',
@@ -675,7 +923,7 @@
                     if (card) card.remove();
                 }
             } catch (err) {
-                alert('Error deleting note');
+                alert('Error deleting item');
             }
         }
 
@@ -683,7 +931,7 @@
             const list = document.getElementById(containerId);
             list.innerHTML = '';
             if (notes.length === 0) {
-                list.innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 2rem;">Vault is empty. Tap + to add a private note!</p>`;
+                list.innerHTML = `<p style="color: var(--muted); text-align: center; margin-top: 2rem;">Vault is empty. Tap + to add a secret key or note!</p>`;
                 return;
             }
             notes.forEach(note => appendNoteToDom(containerId, note));
